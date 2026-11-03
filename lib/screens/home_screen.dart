@@ -1,3 +1,5 @@
+import 'visual_mode_screen.dart';
+
 import 'package:flutter/material.dart';
 
 import '../widgets/giant_mode_button.dart';
@@ -55,8 +57,12 @@ class HomeScreen extends StatelessWidget {
                   ), // surface-container-low
                   semanticsLabel: 'Tengo discapacidad visual. Pulsa para configurar modo de asistencia por voz y alto contraste extremo.',
                   onTap: () {
-                    // Navegación futura al modo visual
-                    print("Navegando a Modo Visual...");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const VisualModeScreen(),
+                      ),
+                    );
                   },
                 ),
               ),
