@@ -1,5 +1,7 @@
 import 'visual_mode_screen.dart';
 
+import 'auditory_mode_screen.dart';
+
 import 'package:flutter/material.dart';
 
 import '../widgets/giant_mode_button.dart';
@@ -98,8 +100,12 @@ class HomeScreen extends StatelessWidget {
                   backgroundColor: const Color(0xFF1C1B1B),
                   semanticsLabel: 'Tengo discapacidad auditiva. Pulsa para configurar avisos visuales, transcripciones y subtítulos.',
                   onTap: () {
-                    // Navegación futura al modo auditivo
-                    print("Navegando a Modo Auditivo...");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AuditoryModeScreen(),
+                      ),
+                    );
                   },
                 ),
               ),
