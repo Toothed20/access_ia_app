@@ -4,11 +4,11 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'https://acces-ia-backend.onrender.com/api/v1';
+  static const String baseUrl = 'https://acces-ia-backend.onrender.com';
 
   static Future<String> analyzeImage(File imageFile, {String? prompt}) async {
     try {
-      var uri = Uri.parse('$baseUrl/visual/analyze');
+      var uri = Uri.parse('$baseUrl/api/v1/visual/analyze');
       var request = http.MultipartRequest('POST', uri);
 
       request.files.add(
