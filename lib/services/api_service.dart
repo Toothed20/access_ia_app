@@ -35,7 +35,7 @@ class ApiService {
 
   static Future<dynamic> processAuditoryText(String rawText) async {
     try {
-      var uri = Uri.parse('$baseUrl/auditory/process');
+      var uri = Uri.parse('$baseUrl/api/v1/auditory/process');
 
       var response = await http.post(
         uri,
