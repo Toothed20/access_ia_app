@@ -160,17 +160,18 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
               ),
             ),
 
-            const Spacer(),
-
-            // Botón Gigante Central Dinámico (Micrófono)
+            const SizedBox(
+              height: 24,
+            ), // Reemplazamos el Spacer() por un margen fijo
+            // Botón Central (Micrófono) - Tamaño optimizado a 180px
             Semantics(
               button: true,
               label: 'Activar micrófono',
               child: GestureDetector(
                 onTap: _isProcessing ? null : _listen,
                 child: Container(
-                  width: 220,
-                  height: 220,
+                  width: 180,
+                  height: 180,
                   decoration: BoxDecoration(
                     color: _isListening
                         ? Colors.redAccent
@@ -198,7 +199,7 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
                       else
                         Icon(
                           _isListening ? Icons.mic : Icons.mic_none,
-                          size: 80,
+                          size: 60,
                           color: Colors.black,
                         ),
                       const SizedBox(height: 16),
@@ -209,7 +210,7 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
                         style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                          fontSize: 16,
                         ),
                       ),
                     ],
@@ -220,7 +221,7 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
 
             const SizedBox(height: 24),
 
-            // Pantalla de Subtítulos dividida (Lo que se escuchó vs Lo que responde Gemini)
+            // Pantalla de Subtítulos (Ahora tiene libertad total de expandirse)
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -232,7 +233,6 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Texto transcrito
                     const Text(
                       'Se escuchó:',
                       style: TextStyle(
@@ -258,7 +258,6 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
                       thickness: 1,
                     ),
 
-                    // Respuesta de Gemini (Subtítulo principal)
                     const Row(
                       children: [
                         Icon(Icons.closed_caption, color: Colors.cyanAccent),
@@ -273,6 +272,8 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
+
+                    // Texto principal
                     Expanded(
                       child: SingleChildScrollView(
                         child: Text(
