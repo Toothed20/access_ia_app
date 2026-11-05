@@ -103,6 +103,7 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: Column(
           children: [
+            // 1. Tarjeta superior
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -145,7 +146,9 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
                 ],
               ),
             ),
-            const Spacer(),
+
+            const Spacer(), // <--- Primer resorte (empuja hacia abajo)
+            // 2. Botón Central
             Semantics(
               button: true,
               label: 'Capturar entorno',
@@ -196,46 +199,48 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.volume_up, color: Colors.cyan),
-                        SizedBox(width: 8),
-                        Text(
-                          'ÚLTIMA LECTURA POR VOZ',
-                          style: TextStyle(
-                            color: Colors.cyan,
-                            fontWeight: FontWeight.bold,
-                          ),
+
+            const Spacer(), // <--- Segundo resorte (empuja hacia arriba, logrando el centrado exacto)
+            // 3. Tarjeta inferior con altura fija (220px) para mantener simetría visual
+            Container(
+              height: 220,
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.volume_up, color: Colors.cyan),
+                      SizedBox(width: 8),
+                      Text(
+                        'ÚLTIMA LECTURA POR VOZ',
+                        style: TextStyle(
+                          color: Colors.cyan,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Text(
-                          _lastDescription,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // El Expanded interno asegura que el scroll funcione dentro de los 220px disponibles
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        _lastDescription,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
