@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter_tts/flutter_tts.dart';
 
 import '../services/api_service.dart';
 
@@ -12,23 +13,39 @@ class AuditoryModeScreen extends StatefulWidget {
 
 class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
   late stt.SpeechToText _speech;
+  final FlutterTts _flutterTts = FlutterTts();
+  final TextEditingController _textController = TextEditingController();
+
   bool _isListening = false;
   bool _isProcessing = false;
   String _spokenText = 'Toca el botón central y comienza a hablar...';
   String _geminiResponse = '';
+  List<String> _smartReplies = [];
 
   @override
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
+    _initTts();
   }
 
-  // Activa el micrófono y escucha al usuario
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("es-MX");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  // Reproduce texto en voz alta
+  Future<void> _speak(String text) async {
+    if (text.isNotEmpty) {
+      await _flutterTts.speak(text);
+    }
+  }
+
   void _listen() async {
     if (!_isListening) {
       bool available = await _speech.initialize(
         onStatus: (status) {
-          // Cuando detecta que el usuario dejó de hablar (pausa larga)
           if (status == 'done' || status == 'notListening') {
             setState(() => _isListening = false);
             if (_spokenText.isNotEmpty &&
@@ -49,25 +66,23 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
       if (available) {
         setState(() {
           _isListening = true;
-          _geminiResponse = ''; // Limpiamos respuestas anteriores
+          _geminiResponse = '';
+          _smartReplies = [];
           _spokenText = 'Escuchando...';
         });
         _speech.listen(
           onResult: (val) => setState(() {
             _spokenText = val.recognizedWords;
           }),
-          localeId: 'es_MX', // Fuerza el reconocimiento en Español de México
+          localeId: 'es_MX',
         );
       }
     } else {
-      // Detiene la escucha manualmente si el usuario vuelve a presionar el botón
       setState(() => _isListening = false);
       _speech.stop();
     }
   }
 
-  // Envía el texto transcrito al servidor de Render
-  // Envía el texto transcrito al servidor de Render
   Future<void> _sendToBackend(String textToProcess) async {
     setState(() {
       _isProcessing = true;
@@ -79,28 +94,21 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
     setState(() {
       _isProcessing = false;
       if (result != null) {
-        // Extraemos las llaves exactas que tu compañero configuró en el backend de Python
-        String cleanText = result['clean_text'] ?? '';
-        List<dynamic> smartReplies = result['smart_replies'] ?? [];
+        _geminiResponse = result['clean_text'] ?? '';
 
-        // Construimos un texto final formateado y limpio
-        String formattedOutput = cleanText;
-
-        if (smartReplies.isNotEmpty) {
-          // Unimos la lista de respuestas inteligentes con saltos de línea y viñetas
-          formattedOutput +=
-              '\n\nSugerencias de respuesta:\n• ' + smartReplies.join('\n• ');
+        var replies = result['smart_replies'];
+        if (replies is List) {
+          _smartReplies = replies.map((e) => e.toString()).toList();
+        } else {
+          _smartReplies = [];
         }
 
-        // Respaldo por si el backend llega a enviar un formato distinto en el futuro
-        if (formattedOutput.trim().isEmpty) {
-          formattedOutput = result.toString();
+        if (_geminiResponse.trim().isEmpty) {
+          _geminiResponse = result.toString();
         }
-
-        _geminiResponse = formattedOutput;
       } else {
-        _geminiResponse =
-            'Ocurrió un error al procesar el texto con el servidor.';
+        _geminiResponse = 'Ocurrió un error al procesar el texto.';
+        _smartReplies = [];
       }
     });
   }
@@ -108,6 +116,8 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
   @override
   void dispose() {
     _speech.stop();
+    _flutterTts.stop();
+    _textController.dispose();
     super.dispose();
   }
 
@@ -122,6 +132,7 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () {
             _speech.stop();
+            _flutterTts.stop();
             Navigator.pop(context);
           },
         ),
@@ -174,18 +185,17 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
               ),
             ),
 
-            const SizedBox(
-              height: 24,
-            ), // Reemplazamos el Spacer() por un margen fijo
-            // Botón Central (Micrófono) - Tamaño optimizado a 180px
+            const SizedBox(height: 16),
+
+            // Botón Central (Micrófono)
             Semantics(
               button: true,
               label: 'Activar micrófono',
               child: GestureDetector(
                 onTap: _isProcessing ? null : _listen,
                 child: Container(
-                  width: 180,
-                  height: 180,
+                  width: 140,
+                  height: 140,
                   decoration: BoxDecoration(
                     color: _isListening
                         ? Colors.redAccent
@@ -213,10 +223,10 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
                       else
                         Icon(
                           _isListening ? Icons.mic : Icons.mic_none,
-                          size: 60,
+                          size: 50,
                           color: Colors.black,
                         ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Text(
                         _isListening
                             ? 'ESCUCHANDO...'
@@ -224,7 +234,7 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
                         style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 14,
                         ),
                       ),
                     ],
@@ -233,9 +243,9 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            // Pantalla de Subtítulos (Ahora tiene libertad total de expandirse)
+            // Pantalla de Subtítulos y Botones de Respuesta
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -272,33 +282,123 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
                       thickness: 1,
                     ),
 
-                    const Row(
+                    // Texto principal transcrito limpio
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.closed_caption,
+                                  color: Colors.cyanAccent,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'MENSAJE',
+                                  style: TextStyle(
+                                    color: Colors.cyanAccent,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _geminiResponse,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+
+                            // Botones de respuesta inteligente
+                            if (_smartReplies.isNotEmpty) ...[
+                              const SizedBox(height: 24),
+                              const Text(
+                                'Respuestas rápidas:',
+                                style: TextStyle(
+                                  color: Colors.cyanAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8.0,
+                                runSpacing: 8.0,
+                                children: _smartReplies
+                                    .map(
+                                      (reply) => ActionChip(
+                                        label: Text(reply),
+                                        backgroundColor: const Color(
+                                          0xFF131313,
+                                        ),
+                                        side: const BorderSide(
+                                          color: Colors.cyanAccent,
+                                        ),
+                                        labelStyle: const TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                        onPressed: () => _speak(reply),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Campo de texto libre para respuesta personalizada
+                    Row(
                       children: [
-                        Icon(Icons.closed_caption, color: Colors.cyanAccent),
-                        SizedBox(width: 8),
-                        Text(
-                          'RESPUESTA',
-                          style: TextStyle(
+                        Expanded(
+                          child: TextField(
+                            controller: _textController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Escribe tu respuesta...',
+                              hintStyle: const TextStyle(color: Colors.grey),
+                              filled: true,
+                              fillColor: const Color(0xFF131313),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: const BoxDecoration(
                             color: Colors.cyanAccent,
-                            fontWeight: FontWeight.bold,
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.volume_up,
+                              color: Colors.black,
+                            ),
+                            onPressed: () {
+                              if (_textController.text.isNotEmpty) {
+                                _speak(_textController.text);
+                                _textController.clear();
+                                FocusScope.of(context)
+                                    .unfocus(); // Oculta el teclado
+                              }
+                            },
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Texto principal
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Text(
-                          _geminiResponse,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
                     ),
                   ],
                 ),
