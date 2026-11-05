@@ -1,17 +1,19 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'https://acces-ia-backend.onrender.com/api/v1';
+  static const String baseUrl = 'https://acces-ia-backend.onrender.com';
 
   static Future<String> analyzeImage(File imageFile, {String? prompt}) async {
     try {
-      var uri = Uri.parse('$baseUrl/visual/analyze');
+      var uri = Uri.parse('$baseUrl/api/v1/visual/analyze');
       var request = http.MultipartRequest('POST', uri);
 
-      request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+      request.files.add(
+        await http.MultipartFile.fromPath('image', imageFile.path),
+      );
 
       if (prompt != null && prompt.isNotEmpty) {
         request.fields['prompt'] = prompt;
@@ -31,14 +33,14 @@ class ApiService {
     }
   }
 
-  static Future?> processAuditoryText(String rawText) async {
+  static Future<dynamic> processAuditoryText(String rawText) async {
     try {
-      var uri = Uri.parse('$baseUrl/auditory/process');
-      
+      var uri = Uri.parse('$baseUrl/api/v1/auditory/process');
+
       var response = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'raw_text': rawText}), 
+        body: jsonEncode({'raw_text': rawText}),
       );
 
       if (response.statusCode == 200) {
