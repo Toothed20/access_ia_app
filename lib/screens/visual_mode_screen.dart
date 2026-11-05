@@ -203,41 +203,49 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
               ),
             ),
 
-            const Spacer(),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2A2A2A),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.volume_up, color: Colors.cyan),
-                      SizedBox(width: 8),
-                      Text(
-                        'ÚLTIMA LECTURA POR VOZ',
-                        style: TextStyle(
-                          color: Colors.cyan,
-                          fontWeight: FontWeight.bold,
+            const SizedBox(
+              height: 24,
+            ), // Reemplaza el Spacer() inferior para acotar la caja
+            // Tarjeta inferior flexible y scrolleable
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.volume_up, color: Colors.cyan),
+                        SizedBox(width: 8),
+                        Text(
+                          'ÚLTIMA LECTURA POR VOZ',
+                          style: TextStyle(
+                            color: Colors.cyan,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          _lastDescription,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _lastDescription,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
