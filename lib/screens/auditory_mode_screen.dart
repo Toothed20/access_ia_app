@@ -67,6 +67,7 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
   }
 
   // Envía el texto transcrito al servidor de Render
+  // Envía el texto transcrito al servidor de Render
   Future<void> _sendToBackend(String textToProcess) async {
     setState(() {
       _isProcessing = true;
@@ -78,12 +79,25 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
     setState(() {
       _isProcessing = false;
       if (result != null) {
-        // Extraemos la respuesta del JSON. (Ajusta 'response' o 'text' según lo que envíe tu compañero desde Python)
-        _geminiResponse =
-            result['response'] ??
-            result['text'] ??
-            result['description'] ??
-            result.toString();
+        // Extraemos las llaves exactas que tu compañero configuró en el backend de Python
+        String cleanText = result['clean_text'] ?? '';
+        List<dynamic> smartReplies = result['smart_replies'] ?? [];
+
+        // Construimos un texto final formateado y limpio
+        String formattedOutput = cleanText;
+
+        if (smartReplies.isNotEmpty) {
+          // Unimos la lista de respuestas inteligentes con saltos de línea y viñetas
+          formattedOutput +=
+              '\n\nSugerencias de respuesta:\n• ' + smartReplies.join('\n• ');
+        }
+
+        // Respaldo por si el backend llega a enviar un formato distinto en el futuro
+        if (formattedOutput.trim().isEmpty) {
+          formattedOutput = result.toString();
+        }
+
+        _geminiResponse = formattedOutput;
       } else {
         _geminiResponse =
             'Ocurrió un error al procesar el texto con el servidor.';
