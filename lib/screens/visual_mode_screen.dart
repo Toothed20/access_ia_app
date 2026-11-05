@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:camera/camera.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../services/api_service.dart';
@@ -17,62 +17,70 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
   bool _isProcessing = false;
   String _lastDescription = 'Toca el botón central para analizar tu entorno.';
   final FlutterTts _flutterTts = FlutterTts();
-  final ImagePicker _picker = ImagePicker();
+  CameraController? _cameraController;
 
   @override
   void initState() {
     super.initState();
-    _initTts();
+    _initSystem();
   }
 
-  // Configura el sintetizador de voz en español
-  void _initTts() async {
-    await _flutterTts.setLanguage("es-MX"); // Español de México
-    await _flutterTts.setSpeechRate(0.5); // Velocidad moderada y clara
+  Future<void> _initSystem() async {
+    await _flutterTts.setLanguage("es-MX");
+    await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setPitch(1.0);
-  }
-
-  // Lógica principal: Toma la foto, la envía a la API y habla el resultado
-  Future<void> _captureAndAnalyze() async {
-    setState(() {
-      _isProcessing = true;
-      _lastDescription = 'Procesando imagen con IA...';
-    });
+    await _flutterTts.speak(
+      "Has entrado al Asistente Visual. Apunta tu teléfono al frente y toca la pantalla para escanear.",
+    );
 
     try {
-      // 1. Abre la cámara nativa del teléfono
-      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-
-      if (photo != null) {
-        // 2. Envía la foto al backend (usando el ApiService que creaste)
-        String result = await ApiService.analyzeImage(File(photo.path));
-
-        setState(() {
-          _lastDescription = result;
-        });
-
-        // 3. Lee la respuesta en voz alta
-        await _flutterTts.speak(result);
-      } else {
-        // El usuario canceló la foto
-        setState(() {
-          _lastDescription = 'Captura cancelada.';
-        });
-      }
+      final cameras = await availableCameras();
+      final backCamera = cameras.firstWhere(
+        (cam) => cam.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+      _cameraController = CameraController(
+        backCamera,
+        ResolutionPreset.medium,
+        enableAudio: false,
+      );
+      await _cameraController!.initialize();
+      if (mounted) setState(() {});
     } catch (e) {
-      setState(() {
-        _lastDescription = 'Ocurrió un error al procesar la imagen.';
-      });
+      setState(() => _lastDescription = 'Error al acceder a la cámara.');
+    }
+  }
+
+  Future<void> _captureAndAnalyze() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized)
+      return;
+
+    setState(() {
+      _isProcessing = true;
+      _lastDescription = 'Capturando y procesando imagen...';
+    });
+    await _flutterTts.speak("Analizando entorno, espera un momento.");
+
+    try {
+      final XFile photo = await _cameraController!.takePicture();
+      String result = await ApiService.analyzeImage(File(photo.path));
+
+      setState(() => _lastDescription = result);
+      await _flutterTts.speak(result);
+    } catch (e) {
+      setState(
+        () => _lastDescription = 'Ocurrió un error al procesar la imagen.',
+      );
+      await _flutterTts.speak("Error al conectar con el servidor.");
     } finally {
-      setState(() {
-        _isProcessing = false;
-      });
+      setState(() => _isProcessing = false);
     }
   }
 
   @override
   void dispose() {
     _flutterTts.stop();
+    _cameraController?.dispose();
     super.dispose();
   }
 
@@ -89,14 +97,12 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
             _flutterTts.stop();
             Navigator.pop(context);
           },
-          tooltip: 'Volver al menú principal',
         ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: Column(
           children: [
-            // Tarjeta superior
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -139,13 +145,10 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
                 ],
               ),
             ),
-
             const Spacer(),
-
-            // Botón Gigante Central Dinámico
             Semantics(
               button: true,
-              label: 'Botón de captura. Toca para tomar una foto y escuchar la descripción del entorno.',
+              label: 'Capturar entorno',
               child: GestureDetector(
                 onTap: _isProcessing ? null : _captureAndAnalyze,
                 child: Container(
@@ -179,7 +182,6 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
                           size: 80,
                           color: Colors.black,
                         ),
-
                       const SizedBox(height: 16),
                       Text(
                         _isProcessing ? 'ANALIZANDO...' : 'ESCANEAR',
@@ -194,43 +196,46 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
                 ),
               ),
             ),
-
-            const Spacer(),
-
-            // Tarjeta inferior de lectura dinámica
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2A2A2A),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.volume_up, color: Colors.cyan),
-                      SizedBox(width: 8),
-                      Text(
-                        'ÚLTIMA LECTURA POR VOZ',
-                        style: TextStyle(
-                          color: Colors.cyan,
-                          fontWeight: FontWeight.bold,
+            const SizedBox(height: 24),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.volume_up, color: Colors.cyan),
+                        SizedBox(width: 8),
+                        Text(
+                          'ÚLTIMA LECTURA POR VOZ',
+                          style: TextStyle(
+                            color: Colors.cyan,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          _lastDescription,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _lastDescription,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

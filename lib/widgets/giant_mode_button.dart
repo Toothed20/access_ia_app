@@ -33,41 +33,43 @@ class GiantModeButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 80, color: iconColor),
-                const SizedBox(height: 24),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 28, // headline-lg-mobile aproximado
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                Icon(icon, size: 64, color: iconColor),
+                const SizedBox(height: 12),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   subtitle,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[400],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const Spacer(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.touch_app, size: 28, color: iconColor),
+                    Icon(Icons.touch_app, size: 24, color: iconColor),
                     const SizedBox(width: 8),
                     Text(
                       'TOCAR PARA ACTIVAR',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: iconColor,
                       ),
