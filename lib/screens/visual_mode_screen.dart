@@ -26,7 +26,6 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
   }
 
   Future<void> _initSystem() async {
-    // Configura voz y da la instrucción inicial
     await _flutterTts.setLanguage("es-MX");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setPitch(1.0);
@@ -34,7 +33,6 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
       "Has entrado al Asistente Visual. Apunta tu teléfono al frente y toca la pantalla para escanear.",
     );
 
-    // Inicializa la cámara de forma silenciosa
     try {
       final cameras = await availableCameras();
       final backCamera = cameras.firstWhere(
@@ -64,9 +62,7 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
     await _flutterTts.speak("Analizando entorno, espera un momento.");
 
     try {
-      // Captura instantánea sin abrir UI nativa
       final XFile photo = await _cameraController!.takePicture();
-
       String result = await ApiService.analyzeImage(File(photo.path));
 
       setState(() => _lastDescription = result);
@@ -107,6 +103,7 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: Column(
           children: [
+            // 1. Tarjeta superior
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -150,8 +147,8 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
               ),
             ),
 
-            const Spacer(),
-
+            const Spacer(), // <--- Primer resorte (empuja hacia abajo)
+            // 2. Botón Central
             Semantics(
               button: true,
               label: 'Capturar entorno',
@@ -203,49 +200,47 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
               ),
             ),
 
-            const SizedBox(
-              height: 24,
-            ), // Reemplaza el Spacer() inferior para acotar la caja
-            // Tarjeta inferior flexible y scrolleable
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.volume_up, color: Colors.cyan),
-                        SizedBox(width: 8),
-                        Text(
-                          'ÚLTIMA LECTURA POR VOZ',
-                          style: TextStyle(
-                            color: Colors.cyan,
-                            fontWeight: FontWeight.bold,
-                          ),
+            const Spacer(), // <--- Segundo resorte (empuja hacia arriba, logrando el centrado exacto)
+            // 3. Tarjeta inferior con altura fija (220px) para mantener simetría visual
+            Container(
+              height: 220,
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.volume_up, color: Colors.cyan),
+                      SizedBox(width: 8),
+                      Text(
+                        'ÚLTIMA LECTURA POR VOZ',
+                        style: TextStyle(
+                          color: Colors.cyan,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Text(
-                          _lastDescription,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // El Expanded interno asegura que el scroll funcione dentro de los 220px disponibles
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        _lastDescription,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
