@@ -1,239 +1,296 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
-class AuditoryModeScreen extends StatelessWidget {
+import '../services/api_service.dart';
+
+class AuditoryModeScreen extends StatefulWidget {
   const AuditoryModeScreen({super.key});
+
+  @override
+  State<AuditoryModeScreen> createState() => _AuditoryModeScreenState();
+}
+
+class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  bool _isProcessing = false;
+  String _spokenText = 'Toca el botón central y comienza a hablar...';
+  String _geminiResponse = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+  }
+
+  // Activa el micrófono y escucha al usuario
+  void _listen() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (status) {
+          // Cuando detecta que el usuario dejó de hablar (pausa larga)
+          if (status == 'done' || status == 'notListening') {
+            setState(() => _isListening = false);
+            if (_spokenText.isNotEmpty &&
+                _spokenText != 'Toca el botón central y comienza a hablar...' &&
+                _spokenText != 'Escuchando...') {
+              _sendToBackend(_spokenText);
+            }
+          }
+        },
+        onError: (errorNotification) {
+          setState(() {
+            _isListening = false;
+            _spokenText = 'No se pudo escuchar claramente. Intenta de nuevo.';
+          });
+        },
+      );
+
+      if (available) {
+        setState(() {
+          _isListening = true;
+          _geminiResponse = ''; // Limpiamos respuestas anteriores
+          _spokenText = 'Escuchando...';
+        });
+        _speech.listen(
+          onResult: (val) => setState(() {
+            _spokenText = val.recognizedWords;
+          }),
+          localeId: 'es_MX', // Fuerza el reconocimiento en Español de México
+        );
+      }
+    } else {
+      // Detiene la escucha manualmente si el usuario vuelve a presionar el botón
+      setState(() => _isListening = false);
+      _speech.stop();
+    }
+  }
+
+  // Envía el texto transcrito al servidor de Render
+  Future<void> _sendToBackend(String textToProcess) async {
+    setState(() {
+      _isProcessing = true;
+      _geminiResponse = 'Procesando respuesta con IA...';
+    });
+
+    var result = await ApiService.processAuditoryText(textToProcess);
+
+    setState(() {
+      _isProcessing = false;
+      if (result != null) {
+        // Extraemos la respuesta del JSON. (Ajusta 'response' o 'text' según lo que envíe tu compañero desde Python)
+        _geminiResponse =
+            result['response'] ??
+            result['text'] ??
+            result['description'] ??
+            result.toString();
+      } else {
+        _geminiResponse =
+            'Ocurrió un error al procesar el texto con el servidor.';
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _speech.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF131313),
-      // AppBar transparente superpuesta para no romper el bloque amarillo
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-          tooltip: 'Volver al menú',
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () {
+            _speech.stop();
+            Navigator.pop(context);
+          },
         ),
       ),
-      body: Column(
-        children: [
-          // MITAD SUPERIOR: Transcripción en Vivo (Amarillo)
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              color: const Color(0xFFFEE400),
-              padding: const EdgeInsets.only(
-                top: 100,
-                left: 24,
-                right: 24,
-                bottom: 24,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Column(
+          children: [
+            // Tarjeta superior
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF201F1F),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Píldora de estado
+                  const Row(
+                    children: [
+                      Icon(Icons.hearing_disabled, color: Colors.cyanAccent),
+                      SizedBox(width: 8),
+                      Text(
+                        'Modo Asistente Auditivo',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.cyanAccent,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: const Text(
+                      'Para personas con discapacidad auditiva',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Spacer(),
+
+            // Botón Gigante Central Dinámico (Micrófono)
+            Semantics(
+              button: true,
+              label: 'Activar micrófono',
+              child: GestureDetector(
+                onTap: _isProcessing ? null : _listen,
+                child: Container(
+                  width: 220,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    color: _isListening
+                        ? Colors.redAccent
+                        : (_isProcessing ? Colors.grey : Colors.cyanAccent),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color:
+                            (_isListening
+                                    ? Colors.redAccent
+                                    : (_isProcessing
+                                          ? Colors.grey
+                                          : Colors.cyanAccent))
+                                .withOpacity(0.2),
+                        blurRadius: 40,
+                        spreadRadius: 15,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (_isProcessing)
+                        const CircularProgressIndicator(color: Colors.black)
+                      else
+                        Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          size: 80,
+                          color: Colors.black,
+                        ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _isListening
+                            ? 'ESCUCHANDO...'
+                            : (_isProcessing ? 'ANALIZANDO...' : 'ESCUCHAR'),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Pantalla de Subtítulos dividida (Lo que se escuchó vs Lo que responde Gemini)
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Texto transcrito
+                    const Text(
+                      'Se escuchó:',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _spokenText,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const Divider(
+                      color: Colors.white24,
+                      height: 24,
+                      thickness: 1,
+                    ),
+
+                    // Respuesta de Gemini (Subtítulo principal)
+                    const Row(
                       children: [
-                        Icon(Icons.graphic_eq, color: Colors.white, size: 16),
+                        Icon(Icons.closed_caption, color: Colors.cyanAccent),
                         SizedBox(width: 8),
                         Text(
-                          'ESCUCHANDO EN VIVO',
+                          'RESPUESTA',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                            color: Colors.cyanAccent,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const Spacer(),
-                  // Texto de transcripción gigante
-                  const Text(
-                    '“Hola, buenas tardes. ¿Tiene cita previa o viene a consultar por primera vez?”',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      height: 1.2,
-                    ),
-                  ),
-                  const Spacer(),
-                  // Indicador de micrófono
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Icon(Icons.mic, color: Colors.black, size: 20),
-                      SizedBox(width: 4),
-                      Text(
-                        'MIC ACTIVO',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // MITAD INFERIOR: Respuestas Rápidas (Oscuro)
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              color: const Color(0xFF131313),
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'RESPUESTAS RÁPIDAS SUGERIDAS',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      Text(
-                        '1-Toque',
-                        style: TextStyle(
-                          color: Colors.cyan,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Botón Inteligente 1
-                  _buildSmartReplyButton(
-                    Icons.event_available,
-                    '“Sí, tengo turno a las 16:30”',
-                  ),
-                  const SizedBox(height: 12),
-                  // Botón Inteligente 2
-                  _buildSmartReplyButton(
-                    Icons.person_add,
-                    '“Es mi primera consulta”',
-                  ),
-                  const SizedBox(height: 12),
-                  // Botón Inteligente 3
-                  _buildSmartReplyButton(
-                    Icons.edit_note,
-                    'Prefiero escribir respuesta',
-                    isDropdown: true,
-                  ),
-
-                  const Spacer(),
-
-                  // Caja de texto manual
-                  const Text(
-                    'ESCRIBIR PARA MOSTRAR / HABLAR',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF201F1F),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const TextField(
-                            style: TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Escribe tu respuesta...',
-                              hintStyle: TextStyle(color: Colors.grey),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 20,
-                              ),
-                            ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          _geminiResponse,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Container(
-                        height: 60,
-                        width: 60,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEE400),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.send,
-                          color: Colors.black,
-                          size: 28,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Componente interno para reutilizar el diseño de los botones de respuesta
-  Widget _buildSmartReplyButton(
-    IconData icon,
-    String text, {
-    bool isDropdown = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.cyan),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          Icon(
-            isDropdown ? Icons.keyboard_arrow_down : Icons.volume_up,
-            color: isDropdown ? Colors.grey : Colors.cyan,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

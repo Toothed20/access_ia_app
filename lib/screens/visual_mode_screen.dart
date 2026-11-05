@@ -26,7 +26,6 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
   }
 
   Future<void> _initSystem() async {
-    // Configura voz y da la instrucción inicial
     await _flutterTts.setLanguage("es-MX");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setPitch(1.0);
@@ -34,7 +33,6 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
       "Has entrado al Asistente Visual. Apunta tu teléfono al frente y toca la pantalla para escanear.",
     );
 
-    // Inicializa la cámara de forma silenciosa
     try {
       final cameras = await availableCameras();
       final backCamera = cameras.firstWhere(
@@ -64,9 +62,7 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
     await _flutterTts.speak("Analizando entorno, espera un momento.");
 
     try {
-      // Captura instantánea sin abrir UI nativa
       final XFile photo = await _cameraController!.takePicture();
-
       String result = await ApiService.analyzeImage(File(photo.path));
 
       setState(() => _lastDescription = result);
@@ -149,9 +145,7 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
                 ],
               ),
             ),
-
             const Spacer(),
-
             Semantics(
               button: true,
               label: 'Capturar entorno',
@@ -202,11 +196,7 @@ class _VisualModeScreenState extends State<VisualModeScreen> {
                 ),
               ),
             ),
-
-            const SizedBox(
-              height: 24,
-            ), // Reemplaza el Spacer() inferior para acotar la caja
-            // Tarjeta inferior flexible y scrolleable
+            const SizedBox(height: 24),
             Expanded(
               child: Container(
                 width: double.infinity,
