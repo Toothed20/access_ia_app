@@ -137,274 +137,286 @@ class _AuditoryModeScreenState extends State<AuditoryModeScreen> {
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Column(
-          children: [
-            // Tarjeta superior
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF201F1F),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.hearing_disabled, color: Colors.cyanAccent),
-                      SizedBox(width: 8),
-                      Text(
-                        'Modo Asistente Auditivo',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+      // GestureDetector detecta toques fuera del teclado para ocultarlo
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: CustomScrollView(
+            slivers: [
+              // SliverToBoxAdapter envuelve la parte superior que queremos que se desplace
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF201F1F),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.hearing_disabled,
+                                color: Colors.cyanAccent,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Modo Asistente Auditivo',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.cyanAccent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Para personas con discapacidad auditiva',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Semantics(
+                      button: true,
+                      label: 'Activar micrófono',
+                      child: GestureDetector(
+                        onTap: _isProcessing ? null : _listen,
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            color: _isListening
+                                ? Colors.redAccent
+                                : (_isProcessing
+                                      ? Colors.grey
+                                      : Colors.cyanAccent),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    (_isListening
+                                            ? Colors.redAccent
+                                            : (_isProcessing
+                                                  ? Colors.grey
+                                                  : Colors.cyanAccent))
+                                        .withOpacity(0.2),
+                                blurRadius: 40,
+                                spreadRadius: 15,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_isProcessing)
+                                const CircularProgressIndicator(
+                                  color: Colors.black,
+                                )
+                              else
+                                Icon(
+                                  _isListening ? Icons.mic : Icons.mic_none,
+                                  size: 50,
+                                  color: Colors.black,
+                                ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _isListening
+                                    ? 'ESCUCHANDO...'
+                                    : (_isProcessing
+                                          ? 'ANALIZANDO...'
+                                          : 'ESCUCHAR'),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.cyanAccent,
-                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'Para personas con discapacidad auditiva',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 16),
-
-            // Botón Central (Micrófono)
-            Semantics(
-              button: true,
-              label: 'Activar micrófono',
-              child: GestureDetector(
-                onTap: _isProcessing ? null : _listen,
+              // SliverFillRemaining ocupa el resto de la pantalla y permite encogerse sin errores
+              SliverFillRemaining(
+                hasScrollBody: false,
                 child: Container(
-                  width: 140,
-                  height: 140,
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: _isListening
-                        ? Colors.redAccent
-                        : (_isProcessing ? Colors.grey : Colors.cyanAccent),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            (_isListening
-                                    ? Colors.redAccent
-                                    : (_isProcessing
-                                          ? Colors.grey
-                                          : Colors.cyanAccent))
-                                .withOpacity(0.2),
-                        blurRadius: 40,
-                        spreadRadius: 15,
-                      ),
-                    ],
+                    color: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_isProcessing)
-                        const CircularProgressIndicator(color: Colors.black)
-                      else
-                        Icon(
-                          _isListening ? Icons.mic : Icons.mic_none,
-                          size: 50,
-                          color: Colors.black,
-                        ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _isListening
-                            ? 'ESCUCHANDO...'
-                            : (_isProcessing ? 'ANALIZANDO...' : 'ESCUCHAR'),
-                        style: const TextStyle(
-                          color: Colors.black,
+                      const Text(
+                        'Se escuchó:',
+                        style: TextStyle(
+                          color: Colors.grey,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Pantalla de Subtítulos y Botones de Respuesta
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Se escuchó:',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 4),
+                      Text(
+                        _spokenText,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _spokenText,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
+
+                      const Divider(
+                        color: Colors.white24,
+                        height: 24,
+                        thickness: 1,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
 
-                    const Divider(
-                      color: Colors.white24,
-                      height: 24,
-                      thickness: 1,
-                    ),
-
-                    // Texto principal transcrito limpio
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(
-                                  Icons.closed_caption,
-                                  color: Colors.cyanAccent,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.closed_caption,
+                                    color: Colors.cyanAccent,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'MENSAJE',
+                                    style: TextStyle(
+                                      color: Colors.cyanAccent,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _geminiResponse,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'MENSAJE',
+                              ),
+
+                              if (_smartReplies.isNotEmpty) ...[
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'Respuestas rápidas:',
                                   style: TextStyle(
                                     color: Colors.cyanAccent,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _geminiResponse,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-
-                            // Botones de respuesta inteligente
-                            if (_smartReplies.isNotEmpty) ...[
-                              const SizedBox(height: 24),
-                              const Text(
-                                'Respuestas rápidas:',
-                                style: TextStyle(
-                                  color: Colors.cyanAccent,
-                                  fontWeight: FontWeight.bold,
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8.0,
+                                  runSpacing: 8.0,
+                                  children: _smartReplies
+                                      .map(
+                                        (reply) => ActionChip(
+                                          label: Text(reply),
+                                          backgroundColor: const Color(
+                                            0xFF131313,
+                                          ),
+                                          side: const BorderSide(
+                                            color: Colors.cyanAccent,
+                                          ),
+                                          labelStyle: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                          onPressed: () => _speak(reply),
+                                        ),
+                                      )
+                                      .toList(),
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8.0,
-                                runSpacing: 8.0,
-                                children: _smartReplies
-                                    .map(
-                                      (reply) => ActionChip(
-                                        label: Text(reply),
-                                        backgroundColor: const Color(
-                                          0xFF131313,
-                                        ),
-                                        side: const BorderSide(
-                                          color: Colors.cyanAccent,
-                                        ),
-                                        labelStyle: const TextStyle(
-                                          color: Colors.white,
-                                        ),
-                                        onPressed: () => _speak(reply),
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                    // Campo de texto libre para respuesta personalizada
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _textController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Escribe tu respuesta...',
-                              hintStyle: const TextStyle(color: Colors.grey),
-                              filled: true,
-                              fillColor: const Color(0xFF131313),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                borderSide: BorderSide.none,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _textController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                hintText: 'Escribe tu respuesta...',
+                                hintStyle: const TextStyle(color: Colors.grey),
+                                filled: true,
+                                fillColor: const Color(0xFF131313),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                  borderSide: BorderSide.none,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.cyanAccent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.volume_up,
-                              color: Colors.black,
+                          const SizedBox(width: 8),
+                          Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.cyanAccent,
+                              shape: BoxShape.circle,
                             ),
-                            onPressed: () {
-                              if (_textController.text.isNotEmpty) {
-                                _speak(_textController.text);
-                                _textController.clear();
-                                FocusScope.of(context)
-                                    .unfocus(); // Oculta el teclado
-                              }
-                            },
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.volume_up,
+                                color: Colors.black,
+                              ),
+                              onPressed: () {
+                                if (_textController.text.isNotEmpty) {
+                                  _speak(_textController.text);
+                                  _textController.clear();
+                                  FocusScope.of(context).unfocus();
+                                }
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
