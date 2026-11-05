@@ -1,7 +1,80 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 
-class VisualModeScreen extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+
+import '../services/api_service.dart';
+
+class VisualModeScreen extends StatefulWidget {
   const VisualModeScreen({super.key});
+
+  @override
+  State<VisualModeScreen> createState() => _VisualModeScreenState();
+}
+
+class _VisualModeScreenState extends State<VisualModeScreen> {
+  bool _isProcessing = false;
+  String _lastDescription = 'Toca el botón central para analizar tu entorno.';
+  final FlutterTts _flutterTts = FlutterTts();
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _initTts();
+  }
+
+  // Configura el sintetizador de voz en español
+  void _initTts() async {
+    await _flutterTts.setLanguage("es-MX"); // Español de México
+    await _flutterTts.setSpeechRate(0.5); // Velocidad moderada y clara
+    await _flutterTts.setPitch(1.0);
+  }
+
+  // Lógica principal: Toma la foto, la envía a la API y habla el resultado
+  Future<void> _captureAndAnalyze() async {
+    setState(() {
+      _isProcessing = true;
+      _lastDescription = 'Procesando imagen con IA...';
+    });
+
+    try {
+      // 1. Abre la cámara nativa del teléfono
+      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+
+      if (photo != null) {
+        // 2. Envía la foto al backend (usando el ApiService que creaste)
+        String result = await ApiService.analyzeImage(File(photo.path));
+
+        setState(() {
+          _lastDescription = result;
+        });
+
+        // 3. Lee la respuesta en voz alta
+        await _flutterTts.speak(result);
+      } else {
+        // El usuario canceló la foto
+        setState(() {
+          _lastDescription = 'Captura cancelada.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _lastDescription = 'Ocurrió un error al procesar la imagen.';
+      });
+    } finally {
+      setState(() {
+        _isProcessing = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +85,10 @@ class VisualModeScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            _flutterTts.stop();
+            Navigator.pop(context);
+          },
           tooltip: 'Volver al menú principal',
         ),
       ),
@@ -20,7 +96,7 @@ class VisualModeScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: Column(
           children: [
-            // Tarjeta superior de instrucciones
+            // Tarjeta superior
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -52,7 +128,7 @@ class VisualModeScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
-                      'Toca o mantén presionado el centro',
+                      'Toca el botón central para escanear',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -60,56 +136,54 @@ class VisualModeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Apuntando cámara para describir entorno',
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
-                  ),
                 ],
               ),
             ),
 
             const Spacer(),
 
-            // Botón Gigante Central (Walkie-Talkie)
+            // Botón Gigante Central Dinámico
             Semantics(
               button: true,
-              label: 'Botón de captura y dictado. Toca dos veces para un vistazo general, o toca dos veces y mantén presionado para preguntar.',
+              label: 'Botón de captura. Toca para tomar una foto y escuchar la descripción del entorno.',
               child: GestureDetector(
-                onTap: () {
-                  // Lógica futura para "Vistazo General"
-                  print("Vistazo rápido activado");
-                },
-                onLongPress: () {
-                  // Lógica futura para iniciar grabación de audio
-                  print("Grabando instrucción de voz...");
-                },
-                onLongPressUp: () {
-                  // Lógica futura para detener grabación y enviar a Gemini
-                  print("Capturando foto y enviando solicitud a Gemini...");
-                },
+                onTap: _isProcessing ? null : _captureAndAnalyze,
                 child: Container(
                   width: 220,
                   height: 220,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEE400),
+                    color: _isProcessing
+                        ? Colors.grey
+                        : const Color(0xFFFEE400),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFEE400).withOpacity(0.2),
+                        color:
+                            (_isProcessing
+                                    ? Colors.grey
+                                    : const Color(0xFFFEE400))
+                                .withOpacity(0.2),
                         blurRadius: 40,
                         spreadRadius: 15,
                       ),
                     ],
                   ),
-                  child: const Column(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.mic, size: 80, color: Colors.black),
-                      SizedBox(height: 8),
+                      if (_isProcessing)
+                        const CircularProgressIndicator(color: Colors.black)
+                      else
+                        const Icon(
+                          Icons.camera_alt,
+                          size: 80,
+                          color: Colors.black,
+                        ),
+
+                      const SizedBox(height: 16),
                       Text(
-                        'DESCRIPCIÓN',
-                        style: TextStyle(
+                        _isProcessing ? 'ANALIZANDO...' : 'ESCANEAR',
+                        style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
@@ -121,26 +195,9 @@ class VisualModeScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 32),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.circle, color: Color(0xFFFEE400), size: 16),
-                SizedBox(width: 8),
-                Text(
-                  'Presiona para escuchar',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-
             const Spacer(),
 
-            // Tarjeta inferior de lectura (Mockup de respuesta de Gemini)
+            // Tarjeta inferior de lectura dinámica
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -148,10 +205,10 @@ class VisualModeScreen extends StatelessWidget {
                 color: const Color(0xFF2A2A2A),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     children: [
                       Icon(Icons.volume_up, color: Colors.cyan),
                       SizedBox(width: 8),
@@ -164,10 +221,10 @@ class VisualModeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
-                    '"Frente a ti hay una mesa a 1.5 metros con una botella con agua y paso libre a la derecha hacia una puerta abierta."',
-                    style: TextStyle(
+                    _lastDescription,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
